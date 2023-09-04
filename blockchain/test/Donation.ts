@@ -21,17 +21,18 @@ describe("Donation", function() {
   it("should allow users to donate", async function() {
     const { donation, donor } = await loadFixture(deployDonationFixture);
 
-    await donation.connect(donor).donate("Test donation", { value: ethers.utils.parseEther("1.0") });
+    await donation.connect(donor).donate("Test donation", { value: ethers.parseEther('1.0') });
 
-    expect(await donation.totalDonations()).to.equal(ethers.utils.parseEther("1.0"));
+    expect(await donation.totalDonations()).to.equal(ethers.parseEther("1.0"));
   });
+
 
   it("should allow the beneficiary to withdraw funds", async function() {
     const { donation, donor, beneficiary } = await loadFixture(deployDonationFixture);
 
-    await donation.connect(donor).donate("Test donation", { value: ethers.utils.parseEther("1.0") });
+    await donation.connect(donor).donate("Test donation", { value: ethers.parseEther("1.0") });
     await donation.connect(beneficiary).withdraw();
 
-    expect(await ethers.provider.getBalance(donation.address)).to.equal(0);
+    expect(await ethers.provider.getBalance(donation.target)).to.equal(0);
   });
 });
