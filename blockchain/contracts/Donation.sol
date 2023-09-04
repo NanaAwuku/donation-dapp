@@ -3,59 +3,64 @@ pragma solidity ^0.8.9;
 
 
 contract Donation {
-    // Structure to hold donation information
-    struct DonationInfo {
+    struct Donation {
         address donor;
         uint256 amount;
-        string message;
         uint256 timestamp;
+        string message;
     }
 
-    // Array to hold all donations
-    DonationInfo[] public donations;
-
-    // Beneficiary address
+    address payable public owner;
     address payable public beneficiary;
+    uint256 public totalDonations;
+    mapping(uint256 => Donation) public donations;
+    uint256 public donationCount = 0;
 
-    // Constructor to set the beneficiary address at contract deployment
+    bool private stopped = false;
+
+    event NewDonation(uint256 donationId, address indexed donor, uint256 amount, string message);
+
+    modifier onlyOwner {
+        require(msg.sender == owner, "Only owner can perform this operation");
+        _;
+    }
+
+    modifier onlyBeneficiary {
+        require(msg.sender == beneficiary, "Only beneficiary can perform this operation");
+        _;
+    }
+
+    modifier stopInEmergency { if (!stopped) _; }
+    modifier onlyInEmergency { if (stopped) _; }
+
     constructor(address payable _beneficiary) {
+        owner = payable(msg.sender);
         beneficiary = _beneficiary;
     }
 
-    // Function to donate MATIC
-    function donate(string memory _message) public payable {
-        require(msg.value > 0, "Donation amount must be greater than 0");
-        donations.push(
-            DonationInfo(msg.sender, msg.value, _message, block.timestamp)
-        );
+    function donate(string memory message) public payable stopInEmergency {
+        require(msg.value > 0, "Donation should be greater than 0");
+        donations[donationCount] = Donation(msg.sender, msg.value, block.timestamp, message);
+        emit NewDonation(donationCount, msg.sender, msg.value, message);
+        donationCount++;
+        totalDonations += msg.value;
     }
 
-    // Function to retrieve total donations
-    function getTotalDonations() public view returns (uint256 total) {
-        for (uint i = 0; i < donations.length; i++) {
-            total += donations[i].amount;
-        }
+    function withdraw() public onlyBeneficiary {
+        uint256 balance = address(this).balance;
+        (bool success, ) = beneficiary.call{value: balance}("");
+        require(success, "Transfer failed.");
     }
 
-    // Function to get donor list
-    function getDonorList() public view returns (address[] memory donors) {
-        donors = new address[](donations.length);
-        for (uint i = 0; i < donations.length; i++) {
-            donors[i] = donations[i].donor;
-        }
+    function setBeneficiary(address payable _beneficiary) public onlyOwner {
+        beneficiary = _beneficiary;
     }
 
-    // Function to withdraw funds to the beneficiary
-    function withdraw() public {
-        require(msg.sender == beneficiary, "Only the beneficiary can withdraw");
-        require(address(this).balance > 0, "No funds to withdraw");
-        beneficiary.transfer(address(this).balance);
+    function toggleContractActive() public onlyOwner {
+        stopped = !stopped;
     }
 
-    // Administrative function to set or change the beneficiary's address
-    function setBeneficiary(address payable _newBeneficiary) public {
-        beneficiary = _newBeneficiary;
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
     }
-
-    
 }
