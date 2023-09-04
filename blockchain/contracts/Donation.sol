@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 
 contract Donation {
+  
     struct Donation {
         address donor;
         uint256 amount;
@@ -11,8 +12,11 @@ contract Donation {
     }
 
     address payable public owner;
+
     address payable public beneficiary;
+
     uint256 public totalDonations;
+
     mapping(uint256 => Donation) public donations;
     uint256 public donationCount = 0;
 
@@ -60,7 +64,7 @@ contract Donation {
         stopped = !stopped;
     }
 
-    function getBalance() public view returns (uint) {
+    function getBalance() public view onlyBeneficiary returns (uint)  {
         return address(this).balance;
     }
 }
